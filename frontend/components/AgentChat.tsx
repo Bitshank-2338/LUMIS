@@ -67,9 +67,16 @@ export function AgentChatPanel({ auditId }: { auditId: string }) {
       setProvider(r.provider);
       setHistory((h) => [...h, { role: "assistant", content: r.reply }]);
     } catch (e: any) {
+      const raw = e?.message || String(e);
+      const friendly =
+        raw === "profile not found"
+          ? "This agent's data is no longer in memory. The backend may have restarted — please run a fresh audit and try again."
+          : raw === "audit not found"
+          ? "This audit session has expired (server restarted). Start a new audit to chat with agents."
+          : `Something went wrong: ${raw}`;
       setHistory((h) => [
         ...h,
-        { role: "assistant", content: `[error: ${e?.message || e}]` },
+        { role: "assistant", content: friendly },
       ]);
     } finally {
       setSending(false);

@@ -1,5 +1,13 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5002";
 
+/** Parse error responses — extracts .error field from JSON, else raw text */
+async function _err(r: Response): Promise<never> {
+  const text = await r.text();
+  let msg = text;
+  try { msg = JSON.parse(text)?.error ?? text; } catch {}
+  throw new Error(msg);
+}
+
 export async function startAudit(payload: {
   domain: string;
   model_endpoint?: string;
@@ -19,7 +27,7 @@ export async function startAudit(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -35,7 +43,7 @@ export async function getLLMProviders(): Promise<{
   const r = await fetch(`${API_BASE}/api/audit/providers`, {
     cache: "no-store",
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -43,7 +51,7 @@ export async function getAuditStatus(auditId: string) {
   const r = await fetch(`${API_BASE}/api/audit/${auditId}/status`, {
     cache: "no-store",
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -57,7 +65,7 @@ export async function getAuditResults(auditId: string) {
 
 export async function listAudits() {
   const r = await fetch(`${API_BASE}/api/audit`, { cache: "no-store" });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -72,7 +80,7 @@ export async function previewPopulation(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -109,7 +117,7 @@ export async function listAuditProfiles(
     `${API_BASE}/api/audit/${auditId}/profiles?${params.toString()}`,
     { cache: "no-store" }
   );
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -126,7 +134,7 @@ export async function sendAgentMessage(
       body: JSON.stringify({ message }),
     }
   );
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -138,7 +146,7 @@ export async function getAgentHistory(
     `${API_BASE}/api/audit/${auditId}/chat/${profileId}`,
     { cache: "no-store" }
   );
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -180,7 +188,7 @@ export async function getAuditGraph(
   if (r.status === 202) {
     return { nodes: [], edges: [], stats: {} };
   }
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
 
@@ -189,6 +197,6 @@ export async function resetAgentChat(auditId: string, profileId: string) {
     `${API_BASE}/api/audit/${auditId}/chat/${profileId}`,
     { method: "DELETE" }
   );
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) return _err(r);
   return r.json();
 }
