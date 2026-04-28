@@ -9,9 +9,47 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict, field
 from typing import Any
 from collections import defaultdict
+import math
 import numpy as np
 import pandas as pd
-from scipy import stats
+
+
+# ---------------------------------------------------------------------------
+# Pure-numpy replacements for scipy.stats (no Fortran compiler required)
+# ---------------------------------------------------------------------------
+
+def _chi2_contingency(observed: np.ndarray):
+    """
+    Compute chi-squared statistic and p-value for a contingency table.
+    Uses Python 3.11+ math.gammaincc for the survival function (no scipy needed).
+    Returns: (chi2_stat, p_value, dof, expected)
+    """
+    obs = np.asarray(observed, dtype=float)
+    row_sums = obs.sum(axis=1, keepdims=True)
+    col_sums = obs.sum(axis=0, keepdims=True)
+    total = obs.sum()
+    expected = (row_sums @ col_sums) / total
+    # Avoid division by zero
+    mask = expected > 0
+    chi2_stat = float(np.sum(((obs - expected) ** 2 / np.where(mask, expected, 1)) * mask))
+    dof = int((obs.shape[0] - 1) * (obs.shape[1] - 1))
+    # p-value = upper tail of chi-squared = Γ(dof/2, chi2/2) / Γ(dof/2)
+    # math.gammaincc is the regularized upper incomplete gamma function (Python 3.11+)
+    p_value = math.gammaincc(dof / 2, chi2_stat / 2) if dof > 0 and chi2_stat >= 0 else 1.0
+    return chi2_stat, p_value, dof, expected
+
+
+def _spearmanr(x, y):
+    """
+    Spearman rank correlation — pure numpy, no scipy.
+    Returns: (correlation, None)  — p-value unused by caller.
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    x_ranks = np.argsort(np.argsort(x_arr)).astype(float)
+    y_ranks = np.argsort(np.argsort(y_arr)).astype(float)
+    corr = float(np.corrcoef(x_ranks, y_ranks)[0, 1])
+    return corr, None
 
 
 def _sanitize(obj: Any) -> Any:
@@ -255,7 +293,7 @@ class BiasEngine:
             contingency = pd.crosstab(df[attr], df[decision_col])
             if contingency.shape[0] < 2 or contingency.shape[1] < 2:
                 return MetricResult("chi_squared_test", 1.0, 0.05, True, "OK", "Insufficient data")
-            chi2, p_value, dof, _ = stats.chi2_contingency(contingency)
+            chi2, p_value, dof, _ = _chi2_contingency(contingency.values)
             passed = p_value > 0.05
             severity = "OK" if passed else ("CRITICAL" if p_value < 0.001 else "HIGH")
             return MetricResult(
@@ -321,7 +359,7 @@ class BiasEngine:
             encoded = pd.Categorical(df[attr]).codes
             for col in numeric_cols:
                 try:
-                    corr, _ = stats.spearmanr(encoded, df[col])
+                    corr, _ = _spearmanr(encoded, df[col])
                     if abs(corr) > 0.5:
                         proxies.append({
                             "feature": col,
