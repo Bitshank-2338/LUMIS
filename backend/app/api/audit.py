@@ -10,6 +10,35 @@ from app.services.llm_decision_adapter import (
     PROVIDER_PRESETS,
 )
 
+# ── Built-in biased demo model (callable — no HTTP server needed) ─────────────
+_MINORITY_ZIPS = {"30310", "60619", "21217", "20019", "90022", "78228", "33125", "10032"}
+
+def _demo_model(profile: dict) -> dict:
+    """
+    Intentionally biased hiring model used for demos.
+    Encodes gender bias (-15), zip-code proxy bias (-10), age bias (-8).
+    """
+    skills    = float(profile.get("skills_score", 50))
+    education = float(profile.get("education_level", 2))
+    years_exp = float(profile.get("years_experience", 0))
+    prior     = float(profile.get("previous_roles", 0))
+    uni       = float(profile.get("university_tier", 2))
+
+    score = skills * 0.50 + education * 5.0 + years_exp * 1.5 + prior * 1.5 + (4 - uni) * 4.0
+
+    if str(profile.get("gender", "")).lower() in ("female", "non_binary"):
+        score -= 15.0
+    if str(profile.get("zip_code", "")) in _MINORITY_ZIPS:
+        score -= 10.0
+    if float(profile.get("age", 30)) >= 50:
+        score -= 8.0
+
+    score += random.gauss(0, 2.0)
+    probability = max(0.0, min(1.0, score / 100.0))
+    return {"decision": 1 if probability >= 0.5 else 0, "score": round(probability, 4)}
+
+_DEMO_ENDPOINTS = {"http://localhost:6001/predict", "http://localhost:6001", "demo", "demo://biased-hiring"}
+
 audit_bp = Blueprint("audit", __name__)
 
 
@@ -68,8 +97,11 @@ def create_audit():
             domain=body["domain"],
         )
         model_callable = adapter
-        # Tag the audit so the report shows which model was audited.
         body["model_endpoint"] = f"{llm_provider}://{llm_model}"
+    elif body.get("model_endpoint") in _DEMO_ENDPOINTS:
+        # Use built-in biased demo model — no external HTTP call needed
+        model_callable = _demo_model
+        body["model_endpoint"] = "demo://biased-hiring-model"
     elif not body.get("model_endpoint"):
         return jsonify({"error": "model_endpoint or llm_provider is required"}), 400
 
