@@ -463,7 +463,7 @@ export function AuditForceGraph({
           {showEdgeLabels ? <Eye className="w-3.5 h-3.5"/> : <EyeOff className="w-3.5 h-3.5"/>}
           Edge labels
         </button>
-        <button onClick={fetchGraph}
+        <button onClick={() => fetchGraph()}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:bg-elevated text-slate-400 hover:text-white transition">
           <RefreshCw className="w-3.5 h-3.5"/>
           Refresh
