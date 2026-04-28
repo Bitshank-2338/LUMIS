@@ -2,10 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "env": {
-    "NEXT_PUBLIC_API_BASE": "@lumis_api_base",
-    "NEXT_PUBLIC_CRISIS_API_BASE": "@lumis_crisis_api_base",
-    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "@lumis_google_maps_key"
-  }
+  "installCommand": "npm install"
 }
