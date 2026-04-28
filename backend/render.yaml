@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: lumis-audit-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: LLM_MODEL_NAME
+        value: gpt-4o-mini
+      - key: GOOGLE_CLOUD_PROJECT
+        value: lumis-494416
+      - key: LUMIS_MAX_POPULATION_SIZE
+        value: "5000"
+      - key: LUMIS_DEFAULT_POPULATION_SIZE
+        value: "1000"

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumis-audit"
+version = "0.1.0"
+description = "LUMIS — Plug-and-play AI bias auditing SDK. Drop-in for any AI model."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "LUMIS" }]
+keywords = ["ai", "bias", "fairness", "compliance", "audit", "eu-ai-act", "eeoc", "ecoa"]
+
+dependencies = [
+    "requests>=2.31",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0"]
+all = ["openai>=1.0"]
+
+[project.urls]
+Homepage = "https://lumis.ai"
+Documentation = "https://docs.lumis.ai"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lumis*"]
