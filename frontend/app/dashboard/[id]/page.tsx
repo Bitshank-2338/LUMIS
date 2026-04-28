@@ -53,6 +53,7 @@ export default function AuditDetail() {
       try {
         const s = await getAuditStatus(auditId);
         if (!active) return;
+        setError(null); // clear any transient error (e.g. Render cold-start 404)
         setStatus(s);
         if (s.state === "COMPLETED") {
           const [r, p] = await Promise.all([
@@ -68,7 +69,12 @@ export default function AuditDetail() {
           clearInterval(pollId);
         }
       } catch (e: any) {
-        setError(e?.message || "Error");
+        // Only show error if we don't already have status (avoid flashing on cold-start)
+        if (!status) {
+          let msg = e?.message || "Error";
+          try { msg = JSON.parse(msg)?.error ?? msg; } catch {}
+          setError(msg);
+        }
       }
     };
     tick();
